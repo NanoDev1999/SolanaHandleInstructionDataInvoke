@@ -12,7 +12,7 @@ const secret = JSON.parse(process.env.KEYPAIR_PRIVATE_KEY ?? "") as number[];
 const secretKey = Uint8Array.from(secret);
 const keypairFromSecretKey = web3.Keypair.fromSecretKey(secretKey);
 
-const programId = new web3.PublicKey(process.env.PROGRAM_ID ?? "");
+const programId = new web3.PublicKey(process.env.PROGRAM_ID_FULL_MOVIE ?? "");
 const connection = new web3.Connection(web3.clusterApiUrl("devnet"));
 
 
