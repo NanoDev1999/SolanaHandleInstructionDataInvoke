@@ -1,4 +1,5 @@
 import * as web3 from "@solana/web3.js";
+import * as borsh from '@project-serum/borsh';
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -12,12 +13,72 @@ const secretKey = Uint8Array.from(secret);
 const keypairFromSecretKey = web3.Keypair.fromSecretKey(secretKey);
 
 const programId = new web3.PublicKey(process.env.PROGRAM_ID ?? "");
-
 const connection = new web3.Connection(web3.clusterApiUrl("devnet"));
 
+
+
+const movieInstructionLayout = borsh.struct([
+    borsh.u8('variant'),
+    borsh.str('title'),
+    borsh.u8('rating'),
+    borsh.str('description')
+]); // this is going to match the rust contract
+
+
+
+// Send Test Movie Review
+
+// Set up Movie Data
+
+let buffer = Buffer.alloc(1000);
+const movieTitle = `Braveheart${Math.random()*1000000}`;
+const movieDescription = "A  movie about a Scottish warrior who leads a rebellion against the cruel English tyrant in the 13th century.";
+const movieRating = 5;
+
+movieInstructionLayout.encode(
+    {
+        variant: 0,
+        title: movieTitle,
+        rating: movieRating,
+        description: movieDescription
+    },
+    buffer
+);
+
+buffer = buffer.slice(0, movieInstructionLayout.getSpan(buffer));
+
+const [pda] = await web3.PublicKey.findProgramAddressSync(
+    [keypairFromSecretKey.publicKey.toBuffer(), Buffer.from(movieTitle)],
+    programId
+);
+
+console.log("PDA is:", pda.toBase58());
+
+
+// Set up Transaction Data 
 const transaction = new web3.Transaction();
 
-const instruction = new web3.TransactionInstruction({keys: [], programId,});
+const instruction = new web3.TransactionInstruction({
+    programId: programId,
+    data: buffer,
+    keys: [
+        {
+            pubkey: keypairFromSecretKey.publicKey,
+            isSigner: true,
+            isWritable: false
+        },
+        {
+            pubkey: pda,
+            isSigner: false,
+            isWritable: true
+        },
+        {
+            pubkey: web3.SystemProgram.programId,
+            isSigner: false,
+            isWritable: false
+        }
+    ]
+})
 
 transaction.add(instruction);
 
